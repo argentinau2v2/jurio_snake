@@ -25,6 +25,7 @@
 			<div class="badge" style="display: none;">최근 아이템: <span id="last-item">-</span></div>
 			<button id="btn-restart">다시 시작</button>
 			<button id="btn-pause">일시정지</button>
+			<button id="btn-capture">캡처</button>
 		</div>
 		<canvas id="game" width="7680" height="7680"></canvas>
 		<div class="footer">이동: 방향키 • 일시정지: <kbd>P</kbd> • 다시 시작: <kbd>R</kbd> • 캡처: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></div>
@@ -780,6 +781,19 @@
 			isPaused = !isPaused;
 		}
 
+		function captureCanvas() {
+			// 현재 캔버스의 내용을 Data URL (PNG 형식)로 변환합니다.
+			const dataUrl = canvas.toDataURL('image/png');
+
+			// 다운로드를 위한 임시 <a> 태그를 생성합니다.
+			const link = document.createElement('a');
+			link.href = dataUrl;
+			link.download = `snake-capture-${Date.now()}.png`; // 파일명 설정
+			
+			// 링크를 클릭하여 다운로드를 시작하고, 이후 링크를 제거합니다.
+			link.click();
+		}
+
 		// 입력 처리
 		document.addEventListener('keydown', (e) => {
 			const k = e.key.toLowerCase();
@@ -831,6 +845,7 @@
 
 		document.getElementById('btn-restart').addEventListener('click', () => init());
 		document.getElementById('btn-pause').addEventListener('click', () => togglePause());
+		document.getElementById('btn-capture').addEventListener('click', captureCanvas);
 
 		// --- 시작 로직 수정 ---
 		// 1. 모든 이미지를 비동기적으로 불러옵니다.
