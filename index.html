@@ -156,8 +156,27 @@
 			// 각 파일 인덱스(1~1000)에 대한 이미지 로딩 작업을 Promise로 관리하는 배열입니다.
 			const perIndexPromises = [];
 
-			// 1부터 1000까지의 숫자 파일명을 가진 이미지를 찾습니다.
-			for (let i = 1; i <= 125; i++) {
+			let indexStart = 1;
+			let indexEnd = 80;
+			if (currentMode === GAME_MODES.BUSINESS) {
+				indexStart = 17;
+				indexEnd = 37;
+			} else if (currentMode === GAME_MODES.CLARK) {
+				indexStart = 52;
+				indexEnd = 64;
+			} else if (currentMode === GAME_MODES.NOPD) {
+				indexStart = 1;
+				indexEnd = 16;
+			} else if (currentMode === GAME_MODES.WIZZRO) {
+				indexStart = 81;
+				indexEnd = 124;
+			} else if (currentMode === GAME_MODES.ISORB) {
+				indexStart = 65;
+				indexEnd = 80;
+			}
+
+			// 1부터 125까지의 숫자 파일명을 가진 이미지를 찾습니다.
+			for (let i = indexStart; i <= indexEnd; i++) {
 				// 각 숫자마다 여러 이미지 확장자(png, jpg 등)를 시도할 목록을 생성합니다.
 				const tryList = FOOD_EXTS.map(ext => `${FOOD_BASE_PATH}/${i}.${ext}`);
 				// 각 인덱스(i)에 대한 로딩 작업을 하나의 Promise로 묶습니다.
@@ -515,11 +534,11 @@
 			// 먹이 체크
 			if (!isNopdMode() && !isWizzroMode() && newHead.x === food.x && newHead.y === food.y) {
 				eatenFoodCount++; // 먹은 아이템 개수 증가
-				// 점수: 일반모드 +5, 기본 +10, 출장맨모드에서 28.jpg는 +50
+				// 점수: 일반모드 +5, 기본 +10, 출장맨모드에서 28.png +50
 				let addScore = 10; // 기본 점수
 				if (currentMode === GAME_MODES.NORMAL) addScore = 5;
 				if (isClarkMode()) addScore = 15; // 클라크모드 점수
-				if (isBusinessTripMode() && currentFoodSrc && (currentFoodSrc.endsWith('28.jpg'))) addScore = 50;
+				if (isBusinessTripMode() && currentFoodSrc && (currentFoodSrc.endsWith('28.png'))) addScore = 50;
                 // console.log('currentFoodSrc : ' + currentFoodSrc);
 				score += addScore;
 				scoreEl.textContent = String(score);
