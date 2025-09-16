@@ -1,11 +1,78 @@
-<!DOCTYPE html> 
-<html lang="ko"> 
-<head> 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>내 GitHub Pages</title> 
-</head> 
-<body> 
-	<h1>안녕하세요! GitHub Pages 홈페이지입니다.</h1> 
-</body> 
-</html>
+<html lang="ko"><head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>스네이크 게임</title>
+	<style>
+		:root { --bg: #0f172a; --fg: #e2e8f0; --accent: #22c55e; --danger: #ef4444; }
+		html, body { height: 100%; }
+		body { margin: 0; display: grid; place-items: center; background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "Malgun Gothic", sans-serif; }
+		.container { display: grid; gap: 12px; justify-items: center; }
+		canvas { background: #0b1021; border: 2px solid #1f2a44; image-rendering: pixelated; width: 1440px; height: 1440px; }
+		.hud { display: flex; gap: 16px; align-items: center; justify-content: center; }
+		.badge { padding: 16px 28px; font-size: 24px; border-radius: 12px; background: #111827; border: 1px solid #1f2937; font-weight: 700; }
+		button { padding: 16px 28px; font-size: 24px; border-radius: 12px; border: 1px solid #1f2937; background: #111827; color: var(--fg); cursor: pointer; font-weight: 700; }
+		button:hover { background: #0f172a; }
+		kbd { background: #111827; border: 1px solid #1f2937; padding: 2px 6px; border-radius: 6px; }
+		.footer { opacity: .7; font-size: 20px; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="hud">
+			<div class="badge">점수: <span id="score">0</span></div>
+			<div class="badge">최고점수: <span id="best">0</span></div>
+			<div class="badge mode" style="display: none;">모드: <span id="mode">일반모드</span></div>
+			<div class="badge" style="display: none;">최근 아이템: <span id="last-item">-</span></div>
+			<button id="btn-restart">다시 시작</button>
+			<button id="btn-pause">일시정지</button>
+		</div>
+		<canvas id="game" width="7680" height="7680"></canvas>
+		<div class="footer">이동: 방향키 • 일시정지: <kbd>P</kbd> • 다시 시작: <kbd>R</kbd> • 캡처: <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></div>
+	</div>
+
+	<script>
+!function(){const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");ctx.imageSmoothingEnabled=!1;const LOGICAL_WIDTH=480,LOGICAL_HEIGHT=480,RENDER_SCALE=16;canvas.width=LOGICAL_WIDTH*RENDER_SCALE,canvas.height=LOGICAL_HEIGHT*RENDER_SCALE;try{ctx.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,0,0)}catch(e){}
+function func1(img,dx,dy,dw,dh){const off=14/RENDER_SCALE;ctx.drawImage(img,dx+off,dy+off,dw,dh)}
+const CHARACTER_CANDIDATES=function(){const names=[],exts=["png","jpg","jpeg","gif","webp"];for(let i=1;i<=12;i++)for(const ext of exts)names.push(`character/${i}.${ext}`);return names}();let loadedHeadImages=[],headImage=null;const GAME_MODES={NORMAL:{name:"일반모드",code:"dlfqks",path:"game/1",head:1,tailColor:"#ffffff"},BUSINESS:{name:"출장맨모드",code:"cnfwkdaos",path:"game/2",head:2,tailColor:"#db7f04"},WIZZRO:{name:"위즐로모드",code:"dnlwmffh",path:"game/3",head:3,tailColor:"#ffff00"},CLARK:{name:"클라크모드",code:"zmffkzm",path:"game/4",head:4,tailColor:"#9ca3af"},NOPD:{name:"노피디모드",code:"shvlel",path:"game/6",head:6,tailColor:"#7CFC00"},ISORB:{name:"이솝모드",code:"dlthq",path:"game/5",head:5,tailColor:"#228fe3"}};let currentMode=GAME_MODES.NORMAL;const isBusinessTripMode=()=>currentMode===GAME_MODES.BUSINESS,isClarkMode=()=>currentMode===GAME_MODES.CLARK,isNopdMode=()=>currentMode===GAME_MODES.NOPD,isWizzroMode=()=>currentMode===GAME_MODES.WIZZRO,isIsorbMode=()=>currentMode===GAME_MODES.ISORB;let wizzroSnakeName=null,wizzroFoods=[],secretBuffer="";function func2(){const promises=CHARACTER_CANDIDATES.map(src=>new Promise(resolve=>{const img=new Image;img.onload=()=>resolve({ok:!0,src,img}),img.onerror=()=>resolve({ok:!1,src}),img.src=src}));return Promise.all(promises).then(results=>{loadedHeadImages=results.filter(r=>r.ok).map(r=>r.img)})}
+const FOOD_EXTS=["png","jpg","jpeg","gif","webp"];let loadedFoodImages=[],foodImageIndex=0,foodImage=null,currentFoodSrc=null,nopdFoods=[];const BOMB_SRCS=["game/2/297.png","game/2/298.png","game/2/299.png"];let loadedBombImages=[],bombImageByName={},bombs=[];function func3(){const ps=BOMB_SRCS.map(src=>new Promise(resolve=>{const img=new Image;img.onload=()=>resolve({ok:!0,img,src}),img.onerror=()=>resolve({ok:!1,src}),img.src=src}));return Promise.all(ps).then(rs=>{loadedBombImages=rs.filter(r=>r.ok).map(r=>r.img),bombImageByName={};for(const r of rs)r.ok&&(r.src.endsWith("/297.png")&&(bombImageByName["297"]=r.img),r.src.endsWith("/298.png")&&(bombImageByName["298"]=r.img),r.src.endsWith("/299.png")&&(bombImageByName["299"]=r.img))})}
+function func4(){return currentMode.path}
+function func5(){loadedFoodImages=[];const FOOD_BASE_PATH=func4(),perIndexPromises=[];for(let i=1;i<=1e3;i++){const tryList=FOOD_EXTS.map(ext=>`${FOOD_BASE_PATH}/${i}.${ext}`);perIndexPromises.push(new Promise(resolveIndex=>{let resolved=!1,remaining=tryList.length;for(const src of tryList){const img=new Image;img.onload=()=>{resolved||(resolved=!0,resolveIndex({idx:i,img,src}))},img.onerror=()=>{remaining--,resolved||0!==remaining||resolveIndex(null)},img.src=src}}))}
+return Promise.all(perIndexPromises).then(results=>{loadedFoodImages=results.filter(Boolean).sort((a,b)=>a.idx-b.idx),loadedFoodImages.length>0?(isNopdMode()?foodImageIndex=0:foodImageIndex=Math.floor(Math.random()*loadedFoodImages.length)+1,foodImage=isBusinessTripMode()?func6():loadedFoodImages[foodImageIndex]?.img||null):(foodImageIndex=0,foodImage=null)})}
+function func6(returnBoth=!1){const candidates=loadedFoodImages.filter(r=>{const s=r.src||"";return!s.endsWith("/297.png")&&!s.endsWith("/298.png")&&!s.endsWith("/299.png")});if(0===candidates.length)return returnBoth?null:null;const pick=candidates[Math.floor(Math.random()*candidates.length)];return returnBoth?{img:pick.img,src:pick.src}:pick.img||null}
+let nopdFoodIndex=0;function func7(increment=!1){const candidates=loadedFoodImages.filter(r=>/\/(?:[1-9]|1[0-6])\.png$/.test(r.src||"")).sort((a,b)=>{const getNum=s=>{const m=(s||"").match(/\/([0-9]+)\.png$/);return m?parseInt(m[1],10):0};return getNum(a.src)-getNum(b.src)});if(0===candidates.length)return null;increment&&(nopdFoodIndex=(nopdFoodIndex+1)%candidates.length);const pick=candidates[nopdFoodIndex%candidates.length];return pick.img||null}
+const CELL_SIZE=24,COLS=Math.floor(LOGICAL_WIDTH/CELL_SIZE),ROWS=Math.floor(LOGICAL_HEIGHT/CELL_SIZE),BASE_TICK_MS=130;let snake,direction,nextDirection,food,score=0,eatenFoodCount=0,best=Number(localStorage.getItem("snake_best")||0),tickMs=BASE_TICK_MS,lastTick=0,isPaused=!1,isGameOver=!1,overlayMessage=null;const scoreEl=document.getElementById("score"),bestEl=document.getElementById("best"),modeEl=document.getElementById("mode"),lastItemEl=document.getElementById("last-item");bestEl.textContent=String(best);function func8(){overlayMessage=null,snake=[{x:Math.floor(COLS/2),y:Math.floor(ROWS/2)}],direction={x:1,y:0},nextDirection={x:1,y:0};const desiredIndex=currentMode.head,desiredImg=new Image;desiredImg.onload=()=>{headImage=desiredImg},desiredImg.onerror=()=>{headImage=null},desiredImg.src=`character/${desiredIndex}.png`,isNopdMode()?func12():isWizzroMode()?func10():func14(),score=0,eatenFoodCount=0,scoreEl.textContent="0",tickMs=BASE_TICK_MS,isPaused=!1,isGameOver=!1,lastTick=0,modeEl.textContent=currentMode.name,bombs=[],isBusinessTripMode()&&func17(),wizzroSnakeName=null,lastItemEl.textContent="-"}
+function func9(idx){for(const r of loadedFoodImages)if((r.src||"").endsWith(`/${idx}.png`))return r.img;return null}
+function func11(){for(let tries=0;tries<2e3;tries++){const x=Math.floor(Math.random()*COLS),y=Math.floor(Math.random()*ROWS),occupied=snake&&snake.some(p=>p.x===x&&p.y===y)||wizzroFoods&&wizzroFoods.some(f=>f.x===x&&f.y===y)||bombs&&bombs.some(b=>b.x===x&&b.y===y);if(!occupied)return{x,y}}
+return null}
+function func10(){wizzroFoods=[];const candidates=loadedFoodImages.filter(r=>{const src=r.src||"";return/game\/3\/[0-9]+\.(png)$/.test(src)});if(0===candidates.length)return;const firstPick=candidates[Math.floor(Math.random()*candidates.length)],firstIdx=parseInt((firstPick.src||"").match(/\/([0-9]+)\.png$/)[1],10),firstPos=func11();if(!firstPos)return;wizzroFoods.push({x:firstPos.x,y:firstPos.y,img:firstPick.img,index:firstIdx});const validCandidates=candidates.filter(r=>{const idx=parseInt((r.src||"").match(/\/([0-9]+)\.png$/)[1],10);return(firstIdx+idx)%2==1});if(validCandidates.length>0){const secondPick=validCandidates[Math.floor(Math.random()*validCandidates.length)],secondIdx=parseInt((secondPick.src||"").match(/\/([0-9]+)\.png$/)[1],10),secondPos=func11();secondPos&&wizzroFoods.push({x:secondPos.x,y:secondPos.y,img:secondPick.img,index:secondIdx})}}
+function func13(){for(let tries=0;tries<2e3;tries++){const x=Math.floor(Math.random()*COLS),y=Math.floor(Math.random()*ROWS),occupied=snake&&snake.some(p=>p.x===x&&p.y===y)||nopdFoods&&nopdFoods.some(f=>f.x===x&&f.y===y)||bombs&&bombs.some(b=>b.x===x&&b.y===y);if(!occupied)return{x,y}}
+return null}
+function func12(){nopdFoods=[];for(let i=1;i<=16;i++){const img=func9(i),pos=func13();pos&&nopdFoods.push({x:pos.x,y:pos.y,img,index:i})}}
+function func15(index){const img=func9(index),pos=func13();if(!pos)return null;return{x:pos.x,y:pos.y,img,index}}
+function func14(){if(isNopdMode()||isWizzroMode())return;for(;;){const x=Math.floor(Math.random()*COLS),y=Math.floor(Math.random()*ROWS),onSnake=snake&&snake.some(p=>p.x===x&&p.y===y),onBomb=bombs&&bombs.some(b=>b.x===x&&b.y===y);if(!onSnake&&!onBomb){food={x,y},loadedFoodImages.length>0?isBusinessTripMode()?(foodImage=(currentFoodSrc=func6(!0))?currentFoodSrc.img:null,currentFoodSrc=currentFoodSrc?currentFoodSrc.src:null):isClarkMode()?(foodImage=(currentFoodSrc=loadedFoodImages[Math.floor(Math.random()*loadedFoodImages.length)])?currentFoodSrc.img:null,currentFoodSrc=currentFoodSrc?currentFoodSrc.src:null):isWizzroMode()?(foodImage=(currentFoodSrc=loadedFoodImages[Math.floor(Math.random()*loadedFoodImages.length)])?currentFoodSrc.img:null,currentFoodSrc=currentFoodSrc?currentFoodSrc.src:null):isNopdMode()?(foodImage=func7(!1),currentFoodSrc=null):(foodImage=(currentFoodSrc=loadedFoodImages[Math.floor(Math.random()*loadedFoodImages.length)])?currentFoodSrc.img:null,currentFoodSrc=currentFoodSrc?currentFoodSrc.src:null):(foodImage=null,currentFoodSrc=null);break}}}
+function func18(){if(!isBusinessTripMode())return 0;if(score>=300)return 3;if(score>=200)return 2;if(score>=100)return 1;return 0}
+function func16(imgOverride){if(0===loadedBombImages.length)return null;for(let tries=0;tries<2e3;tries++){const x=Math.floor(Math.random()*COLS),y=Math.floor(Math.random()*ROWS),occupied=snake&&snake.some(p=>p.x===x&&p.y===y)||food&&food.x===x&&food.y===y||bombs&&bombs.some(b=>b.x===x&&b.y===y);if(!occupied){const img=imgOverride||loadedBombImages[Math.floor(Math.random()*loadedBombImages.length)];return{x,y,img}}}
+return null}
+function func17(){const need=func18();if(bombs.length>need)bombs=bombs.slice(0,need);else for(;bombs.length<need;){let img=null;0===bombs.length&&bombImageByName["299"]?img=bombImageByName["299"]:1===bombs.length&&bombImageByName["298"]?img=bombImageByName["298"]:2===bombs.length&&bombImageByName["297"]&&(img=bombImageByName["297"]);const b=func16(img);if(!b)break;bombs.push(b)}}
+function func19(nx,ny){nx===-direction.x&&ny===-direction.y||(nextDirection={x:nx,y:ny})}
+function func20(dt){if(isPaused||isGameOver||dt-lastTick<tickMs)return;lastTick=dt,direction=nextDirection;const head=snake[0];let newHead={x:head.x+direction.x,y:head.y+direction.y};if(isIsorbMode()&&(eatenFoodCount+2)%2!=0){if(newHead.x<0||newHead.x>=COLS||newHead.y<0||newHead.y>=ROWS)return void func25()}else newHead.x=(newHead.x+COLS)%COLS,newHead.y=(newHead.y+ROWS)%ROWS;if(snake.some((seg,i)=>0!==i&&seg.x===newHead.x&&seg.y===newHead.y))return void func25();if(bombs&&bombs.some(b=>b.x===newHead.x&&b.y===newHead.y))return void func25();if(snake.unshift(newHead),!isNopdMode()&&!isWizzroMode()&&newHead.x===food.x&&newHead.y===food.y){eatenFoodCount++;let addScore=10;currentMode===GAME_MODES.NORMAL?addScore=5:isClarkMode()&&(addScore=15),isBusinessTripMode()&&currentFoodSrc&&currentFoodSrc.endsWith("209.jpg")&&(addScore=50),score+=addScore,scoreEl.textContent=String(score),score>best&&(best=score,bestEl.textContent=String(best),localStorage.setItem("snake_best",String(best)));{const normalStep=2,step=isClarkMode()?Math.max(1,Math.round(4*normalStep)):normalStep;tickMs=Math.max(60,tickMs-step)}
+isBusinessTripMode()&&loadedFoodImages.length>0&&(foodImageIndex=(foodImageIndex+1)%loadedFoodImages.length),isNopdMode()&&func7(!0),isBusinessTripMode()&&func17(),func14(),currentFoodSrc&&(lastItemEl.textContent=currentFoodSrc.split("/").pop())}else{if(isWizzroMode()){const hitIdx=wizzroFoods.findIndex(f=>f.x===newHead.x&&f.y===newHead.y);if(-1!==hitIdx){const hitFood=wizzroFoods[hitIdx];if(null===wizzroSnakeName)return wizzroSnakeName=hitFood.index,score+=10,scoreEl.textContent=String(score),score>best&&(best=score,bestEl.textContent=String(best),localStorage.setItem("snake_best",String(best))),wizzroFoods=[],func10(),void(lastItemEl.textContent=`${hitFood.index}.png`);{const sum=wizzroSnakeName+hitFood.index;if(0===sum%2)return score+=10,scoreEl.textContent=String(score),score>best&&(best=score,bestEl.textContent=String(best),localStorage.setItem("snake_best",String(best))),wizzroFoods=[],func10(),void(lastItemEl.textContent=`${hitFood.index}.png`);func25()}}}
+if(isNopdMode()){const hitIdx=nopdFoods.findIndex(f=>f.x===newHead.x&&f.y===newHead.y);if(-1!==hitIdx){const tailCount=Math.max(0,snake.length-2),crystal=(tailCount+16)%16+1,hitFood=nopdFoods[hitIdx];if(hitFood.index===crystal){score+=10,scoreEl.textContent=String(score),score>best&&(best=score,bestEl.textContent=String(best),localStorage.setItem("snake_best",String(best)));{const normalStep=2,step=isClarkMode()?Math.max(1,Math.round(2*normalStep)):normalStep;tickMs=Math.max(60,tickMs-step)}
+const replaced=func15(hitFood.index);return replaced&&(nopdFoods[hitIdx]=replaced),void(lastItemEl.textContent=`${hitFood.index}.png`)}
+func25()}}
+snake.pop()}}
+function func21(x,y,color){ctx.fillStyle=color;ctx.fillRect(x*CELL_SIZE+1,y*CELL_SIZE+1,CELL_SIZE-1,CELL_SIZE-1)}
+function func22(){ctx.strokeStyle="rgba(255,255,255,0.05)",ctx.lineWidth=1;for(let x=0;x<=COLS;x++)ctx.beginPath(),ctx.moveTo(x*CELL_SIZE+.5,0),ctx.lineTo(x*CELL_SIZE+.5,LOGICAL_HEIGHT),ctx.stroke();for(let y=0;y<=ROWS;y++)ctx.beginPath(),ctx.moveTo(0,y*CELL_SIZE+.5),ctx.lineTo(LOGICAL_WIDTH,y*CELL_SIZE+.5),ctx.stroke()}
+function func23(){ctx.clearRect(0,0,LOGICAL_WIDTH,LOGICAL_HEIGHT),func22(),isIsorbMode()&&(eatenFoodCount+2)%2!=0&&(ctx.strokeStyle="#ffffff",ctx.lineWidth=4,ctx.strokeRect(0,0,LOGICAL_WIDTH,LOGICAL_HEIGHT)),isNopdMode()?nopdFoods.forEach(f=>{f.img?func1(f.img,f.x*CELL_SIZE,f.y*CELL_SIZE,CELL_SIZE-1,CELL_SIZE-1):func21(f.x,f.y,"#f59e0b")}):isWizzroMode()?wizzroFoods.forEach(f=>{f.img?func1(f.img,f.x*CELL_SIZE,f.y*CELL_SIZE,CELL_SIZE-1,CELL_SIZE-1):func21(f.x,f.y,"#f59e0b")}):foodImage?func1(foodImage,food.x*CELL_SIZE,food.y*CELL_SIZE,CELL_SIZE-1,CELL_SIZE-1):func21(food.x,food.y,"#f59e0b"),bombs&&bombs.length&&bombs.forEach(b=>{b.img?func1(b.img,b.x*CELL_SIZE,b.y*CELL_SIZE,CELL_SIZE-1,CELL_SIZE-1):func21(b.x,b.y,"#ef4444")}),snake.forEach((seg,idx)=>{0===idx&&headImage?func1(headImage,seg.x*CELL_SIZE,seg.y*CELL_SIZE,CELL_SIZE-1,CELL_SIZE-1):func21(seg.x,seg.y,currentMode.tailColor)}),overlayMessage?func24(overlayMessage):isPaused&&func24("일시정지"),isGameOver&&func26()}
+function func24(text){ctx.fillStyle="rgba(0,0,0,0.5)",ctx.fillRect(0,0,LOGICAL_WIDTH,LOGICAL_HEIGHT),ctx.fillStyle="#e2e8f0",ctx.font="bold 28px system-ui, Apple SD Gothic Neo, Malgun Gothic, sans-serif",ctx.textAlign="center",ctx.fillText(text,LOGICAL_WIDTH/2,LOGICAL_HEIGHT/2)}
+function func26(){ctx.fillStyle="rgba(0,0,0,0.5)",ctx.fillRect(0,0,LOGICAL_WIDTH,LOGICAL_HEIGHT),ctx.fillStyle="#e2e8f0",ctx.textAlign="center","일반"===currentMode.name?(ctx.font="bold 28px system-ui, Apple SD Gothic Neo, Malgun Gothic, sans-serif",ctx.fillText("점수 : "+score,LOGICAL_WIDTH/2,LOGICAL_HEIGHT/2)):(ctx.font="bold 14px system-ui, Apple SD Gothic Neo, Malgun Gothic, sans-serif",ctx.fillText(currentMode.name,LOGICAL_WIDTH/2,LOGICAL_HEIGHT/2-20),ctx.font="bold 28px system-ui, Apple SD Gothic Neo, Malgun Gothic, sans-serif",ctx.fillText("점수 : "+score,LOGICAL_WIDTH/2,LOGICAL_HEIGHT/2+20))}
+function func25(){isGameOver=!0}
+function func27(dt){func20(dt),func23(),requestAnimationFrame(func27)}
+function func28(){isGameOver||(isPaused=!isPaused)}
+document.addEventListener("keydown",e=>{const k=e.key.toLowerCase();"arrowup"===k?func19(0,-1):"arrowdown"===k?func19(0,1):"arrowleft"===k?func19(-1,0):"arrowright"===k?func19(1,0):"p"===k?func28():"r"===k&&func8(),isPaused&&!isGameOver&&/^[a-z]$/.test(k)&&(secretBuffer+=k,function(){let e=!1;for(const t in GAME_MODES){const o=GAME_MODES[t];if(secretBuffer===o.code){currentMode=o,e=!0,secretBuffer="",nopdFoodIndex=0;const t=document.querySelector(".badge.mode");t&&(t.style.display=""),overlayMessage=`${currentMode.name}로 변경합니다`,setTimeout(()=>{const e=[func5()];isBusinessTripMode()&&e.push(func3()),Promise.all(e).then(()=>func8())},500);break}}
+e||Object.values(GAME_MODES).some(m=>m.code.startsWith(secretBuffer))||(secretBuffer=Object.values(GAME_MODES).some(m=>m.code.startsWith(k))?k:"")}())}),document.getElementById("btn-restart").addEventListener("click",()=>func8()),document.getElementById("btn-pause").addEventListener("click",()=>func28()),Promise.all([func2(),func5(),func3()]).then(()=>{func24("Now Loading..."),setTimeout(()=>{func8(),requestAnimationFrame(func27)},1e3)})}();
+	</script>
+
+
+
+</body></html>
