@@ -15,6 +15,38 @@
 		kbd { background: #111827; border: 1px solid #1f2937; padding: 2px 6px; border-radius: 6px; }
 		.footer { opacity: .7; font-size: 10px; }
 
+		.bottom-controls-wrapper {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 24px;
+			margin-top: 16px;
+			width: 100%;
+		}
+
+		.bottom-action-controls {
+			transform: translateY(-10px);
+		}
+		.action-buttons {
+			display: grid;
+			grid-template-areas:
+				"1 2 3"
+				"4 5 6"
+				". . ."
+				". . ."
+				". . ."
+				". . ."
+				". . ."
+				". . .";
+			gap: 16px;
+		}
+		.action-buttons button {
+			width: 30px; height: 30px; font-size: 12px;
+		}
+		#btn-char-1, #btn-char-2, #btn-char-3, #btn-char-4, #btn-char-5, #btn-char-6 {
+			background-size: cover; /* 이미지가 버튼을 가득 채우도록 설정 */
+		}
+
 		/* --- 모바일 컨트롤러 스타일 --- */
 		.controls {
 			display: grid;
@@ -22,7 +54,6 @@
 				". up ."
 				"left down right";
 			gap: 8px;
-			margin-top: 16px;
 		}
 		.controls button {
 			width: 64px;
@@ -33,6 +64,19 @@
 		#btn-left { grid-area: left; }
 		#btn-down { grid-area: down; }
 		#btn-right { grid-area: right; }
+
+		/* --- 액션 버튼 이미지 설정 --- */
+		.action-buttons {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 8px;
+		}
+		#btn-char-1 { background-image: url('character/1.png'); }
+		#btn-char-2 { background-image: url('character/2.png'); }
+		#btn-char-3 { background-image: url('character/3.png'); }
+		#btn-char-4 { background-image: url('character/4.png'); }
+		#btn-char-5 { background-image: url('character/5.png'); }
+		#btn-char-6 { background-image: url('character/6.png'); }
 	</style>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -47,12 +91,26 @@
 			<button id="btn-pause">일시정지</button>
 			<!-- <button id="btn-capture">캡처</button> -->
 		</div>
-		<canvas id="game" width="7680" height="7680"></canvas>
-		<div class="controls">
-			<button id="btn-up">▲</button>
-			<button id="btn-left">◀</button>
-			<button id="btn-down">▼</button>
-			<button id="btn-right">▶</button>
+		<canvas id="game" width="960" height="960"></canvas>
+		<div class="bottom-controls-wrapper">
+			<div class="bottom-action-controls">
+				<div class="action-buttons">
+					<button id="btn-char-1"></button>
+					<button id="btn-char-2"></button>
+					<button id="btn-char-3"></button>
+					<button id="btn-char-4"></button>
+					<button id="btn-char-5"></button>
+					<button id="btn-char-6"></button>
+				</div>
+			</div>
+			<div class="bottom-controls">
+				<div class="controls">
+					<button id="btn-up">▲</button>
+					<button id="btn-left">◀</button>
+					<button id="btn-down">▼</button>
+					<button id="btn-right">▶</button>
+				</div>
+			</div>
 		</div>
 		<!-- <div class="footer">이동: 방향키 • 일시정지: <kbd>P</kbd> • 다시 시작: <kbd>R</kbd></div> -->
 	</div>
@@ -118,6 +176,31 @@
 		// const SECRET_CODE_WIZZRO = 'dnlwmffh';
 		// const SECRET_CODE_NORMAL = 'dlfqks';
 		let secretBuffer = '';
+
+		function changeMode(newMode) {
+			// 현재 모드와 같으면 아무것도 하지 않음
+			if (currentMode === newMode) return;
+			isPaused = true; // 모드 변경 시작 시 일시정지
+
+			currentMode = newMode;
+			nopdFoodIndex = 0; // NOPD 모드 인덱스 초기화
+
+			// 모드 배지 표시
+			// const modeBadge = document.querySelector('.badge.mode');
+			// if (modeBadge) modeBadge.style.display = '';
+
+			// 모드 변경 메시지 표시 후 게임 재시작
+			overlayMessage = `${currentMode.name}로 변경합니다`;
+			setTimeout(() => {
+				const promises = [preloadFoodImages()];
+				if (isBusinessTripMode()) {
+					promises.push(preloadBombImages());
+				}
+				// 이미지 리로드 후 게임 초기화
+				Promise.all(promises).then(() => init());
+			}, 500); // 0.5초 대기
+		}
+
 
 		function preloadHeadImages() {
 			const promises = CHARACTER_CANDIDATES.map(src => new Promise(resolve => {
@@ -708,6 +791,13 @@
 		}
 
 		function render() {
+			// 모드 변경 등 특별한 오버레이 메시지가 있을 경우,
+			// 해당 메시지만 그리고 나머지 게임 렌더링은 건너뜁니다.
+			if (overlayMessage) {
+				drawOverlay(overlayMessage);
+				return;
+			}
+
 			ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 			drawGrid();
 
@@ -762,9 +852,11 @@
 				}
 			});
 
-			if (overlayMessage) drawOverlay(overlayMessage);
-			else if (isPaused) drawOverlay('일시정지');
-			if (isGameOver) drawOverlayForGameOver();
+			if (isGameOver) {
+				drawOverlayForGameOver();
+			} else if (isPaused) {
+				drawOverlay('일시정지');
+			}
 		}
 
 		function drawOverlay(text) {
@@ -851,8 +943,8 @@
 							nopdFoodIndex = 0; // NOPD 모드 인덱스 초기화
 
 							// 모드와 최근 아이템 표시를 활성화합니다.
-							const modeBadge = document.querySelector('.badge.mode');
-							if (modeBadge) modeBadge.style.display = '';
+							// const modeBadge = document.querySelector('.badge.mode');
+							// if (modeBadge) modeBadge.style.display = '';
 
 							// 모드 변경 메시지를 표시하고 0.5초 대기합니다.
 							overlayMessage = `${currentMode.name}로 변경합니다`;
@@ -896,6 +988,14 @@
 		addPressListener('btn-down', () => setDirection(0, 1));
 		addPressListener('btn-left', () => setDirection(-1, 0));
 		addPressListener('btn-right', () => setDirection(1, 0));
+
+		// 캐릭터 선택 버튼 이벤트
+		addPressListener('btn-char-1', () => changeMode(GAME_MODES.NORMAL));
+		addPressListener('btn-char-2', () => changeMode(GAME_MODES.BUSINESS));
+		addPressListener('btn-char-3', () => changeMode(GAME_MODES.WIZZRO));
+		addPressListener('btn-char-4', () => changeMode(GAME_MODES.CLARK));
+		addPressListener('btn-char-5', () => changeMode(GAME_MODES.ISORB));
+		addPressListener('btn-char-6', () => changeMode(GAME_MODES.NOPD));
 		// document.getElementById('btn-capture').addEventListener('click', captureCanvas);
 
 		// --- 시작 로직 수정 ---
