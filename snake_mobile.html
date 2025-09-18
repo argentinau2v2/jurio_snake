@@ -880,11 +880,22 @@
 		document.getElementById('btn-restart').addEventListener('click', () => init());
 		document.getElementById('btn-pause').addEventListener('click', () => togglePause());
 
-		// 모바일 컨트롤러 이벤트
-		document.getElementById('btn-up').addEventListener('click', () => setDirection(0, -1));
-		document.getElementById('btn-down').addEventListener('click', () => setDirection(0, 1));
-		document.getElementById('btn-left').addEventListener('click', () => setDirection(-1, 0));
-		document.getElementById('btn-right').addEventListener('click', () => setDirection(1, 0));
+		// --- 모바일 컨트롤러 이벤트 수정 ---
+		// 'click' 대신 'touchstart'와 'mousedown' 이벤트를 사용하여 누르는 즉시 반응하도록 변경
+		function addPressListener(elementId, action) {
+			const element = document.getElementById(elementId);
+			// 터치 이벤트
+			element.addEventListener('touchstart', (e) => {
+				e.preventDefault(); // 클릭 이벤트 중복 발생 및 화면 스크롤 방지
+				action();
+			});
+			// 마우스 이벤트 (PC/개발용)
+			element.addEventListener('mousedown', action);
+		}
+		addPressListener('btn-up', () => setDirection(0, -1));
+		addPressListener('btn-down', () => setDirection(0, 1));
+		addPressListener('btn-left', () => setDirection(-1, 0));
+		addPressListener('btn-right', () => setDirection(1, 0));
 		// document.getElementById('btn-capture').addEventListener('click', captureCanvas);
 
 		// --- 시작 로직 수정 ---
