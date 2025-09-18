@@ -14,6 +14,25 @@
 		button:hover { background: #0f172a; }
 		kbd { background: #111827; border: 1px solid #1f2937; padding: 2px 6px; border-radius: 6px; }
 		.footer { opacity: .7; font-size: 10px; }
+
+		/* --- 모바일 컨트롤러 스타일 --- */
+		.controls {
+			display: grid;
+			grid-template-areas:
+				". up ."
+				"left down right";
+			gap: 8px;
+			margin-top: 16px;
+		}
+		.controls button {
+			width: 64px;
+			height: 64px;
+			font-size: 24px;
+		}
+		#btn-up { grid-area: up; }
+		#btn-left { grid-area: left; }
+		#btn-down { grid-area: down; }
+		#btn-right { grid-area: right; }
 	</style>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -29,6 +48,12 @@
 			<!-- <button id="btn-capture">캡처</button> -->
 		</div>
 		<canvas id="game" width="7680" height="7680"></canvas>
+		<div class="controls">
+			<button id="btn-up">▲</button>
+			<button id="btn-left">◀</button>
+			<button id="btn-down">▼</button>
+			<button id="btn-right">▶</button>
+		</div>
 		<!-- <div class="footer">이동: 방향키 • 일시정지: <kbd>P</kbd> • 다시 시작: <kbd>R</kbd></div> -->
 	</div>
 
@@ -259,7 +284,7 @@
 		const CELL_SIZE = 24; // 타일 크기(px)
 		const COLS = Math.floor(LOGICAL_WIDTH / CELL_SIZE);
 		const ROWS = Math.floor(LOGICAL_HEIGHT / CELL_SIZE);
-		const BASE_TICK_MS = 130; // 초기 이동 주기(ms)
+		const BASE_TICK_MS = 260; // 초기 이동 주기(ms)
 
 		// 게임 상태
 		let snake; // 배열: 머리 먼저, 각 원소는 {x, y}
@@ -854,6 +879,12 @@
 
 		document.getElementById('btn-restart').addEventListener('click', () => init());
 		document.getElementById('btn-pause').addEventListener('click', () => togglePause());
+
+		// 모바일 컨트롤러 이벤트
+		document.getElementById('btn-up').addEventListener('click', () => setDirection(0, -1));
+		document.getElementById('btn-down').addEventListener('click', () => setDirection(0, 1));
+		document.getElementById('btn-left').addEventListener('click', () => setDirection(-1, 0));
+		document.getElementById('btn-right').addEventListener('click', () => setDirection(1, 0));
 		// document.getElementById('btn-capture').addEventListener('click', captureCanvas);
 
 		// --- 시작 로직 수정 ---
