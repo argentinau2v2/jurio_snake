@@ -32,7 +32,7 @@
 			grid-template-areas:
 				"1 2 3"
 				"4 5 6"
-				". . ."
+				"7 . ."
 				". . ."
 				". . ."
 				". . ."
@@ -43,7 +43,7 @@
 		.action-buttons button {
 			width: 30px; height: 30px; font-size: 12px;
 		}
-		#btn-char-1, #btn-char-2, #btn-char-3, #btn-char-4, #btn-char-5, #btn-char-6 {
+		#btn-char-1, #btn-char-2, #btn-char-3, #btn-char-4, #btn-char-5, #btn-char-6, #btn-char-7 {
 			background-size: cover; /* 이미지가 버튼을 가득 채우도록 설정 */
 		}
 
@@ -77,6 +77,7 @@
 		#btn-char-4 { background-image: url('character/4.png'); }
 		#btn-char-5 { background-image: url('character/5.png'); }
 		#btn-char-6 { background-image: url('character/6.png'); }
+		#btn-char-7 { background-image: url('character/7.png'); }
 	</style>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -101,6 +102,7 @@
 					<button id="btn-char-4"></button>
 					<button id="btn-char-5"></button>
 					<button id="btn-char-6"></button>
+					<button id="btn-char-7"></button>
 				</div>
 			</div>
 			<div class="bottom-controls">
@@ -155,15 +157,18 @@
 			CLARK: { name: '클라크모드', code: 'zmffkzm', path: 'game/4', head: 4, tailColor: '#9ca3af' },
 			NOPD: { name: '노피디모드', code: 'shvlel', path: 'game/6', head: 6, tailColor: '#7CFC00' },
 			ISORB: { name: '이솝모드', code: 'dlthq', path: 'game/5', head: 5, tailColor: '#228fe3' },
+			RUMO: { name: '루모모드', code: 'fnah', path: 'game/7', head: 7, tailColor: '#978ff9' },
 		};
 		let currentMode = GAME_MODES.NORMAL;
 
 		// 기존 is-모드 변수들을 currentMode를 통해 확인하도록 변경
+		const isNormalMode = () => currentMode === GAME_MODES.NORMAL;
 		const isBusinessTripMode = () => currentMode === GAME_MODES.BUSINESS;
 		const isClarkMode = () => currentMode === GAME_MODES.CLARK;
 		const isNopdMode = () => currentMode === GAME_MODES.NOPD;
 		const isWizzroMode = () => currentMode === GAME_MODES.WIZZRO;
 		const isIsorbMode = () => currentMode === GAME_MODES.ISORB;
+		const isRumoMode = () => currentMode === GAME_MODES.RUMO;
 		// --- 개선 제안 끝 ---
 
 		let wizzroSnakeName = null; // 위즐로모드에서 스네이크 이름(숫자)
@@ -268,7 +273,7 @@
 
 			let indexStart = 1;
 			let indexEnd = 80;
-			if (currentMode === GAME_MODES.BUSINESS) {
+			if (isBusinessTripMode()) {
 				indexStart = 17;
 				indexEnd = 37;
 			} else if (currentMode === GAME_MODES.CLARK) {
@@ -283,6 +288,9 @@
 			} else if (currentMode === GAME_MODES.ISORB) {
 				indexStart = 65;
 				indexEnd = 80;
+			} else if (isRumoMode()) {
+				indexStart = 1;
+				indexEnd = 30;
 			}
 
 			// 1부터 125까지의 숫자 파일명을 가진 이미지를 찾습니다.
@@ -403,6 +411,14 @@
 			desiredImg.onload = () => { headImage = desiredImg; };
 			desiredImg.onerror = () => { headImage = null; };
 			desiredImg.src = `character/${desiredIndex}.png`;
+
+			if (isRumoMode()) {
+				const rumoHeadImg = new Image();
+				rumoHeadImg.onload = () => { headImage = rumoHeadImg; };
+				rumoHeadImg.onerror = () => { headImage = null; };
+				rumoHeadImg.src = `character/7.png`;
+			}
+
 			// 음식 초기화
 			if (isNopdMode()) {
 				nopdInitFoods();
@@ -418,6 +434,8 @@
 			isPaused = false;
 			isGameOver = false;
 			lastTick = 0;
+			if (isRumoMode()) tickMs = BASE_TICK_MS; // 루모 모드에서 속도 초기화
+
 			modeEl.textContent = currentMode.name;
 			bombs = [];
 			if (isBusinessTripMode()) rebalanceBombs();
@@ -536,6 +554,10 @@
 						} else if (isNopdMode()) {
 							foodImage = chooseNopdFoodImage(false);
 							currentFoodSrc = null;
+						} else if (isRumoMode()) {
+							const any = loadedFoodImages[Math.floor(Math.random() * loadedFoodImages.length)];
+							foodImage = any ? any.img : null;
+							currentFoodSrc = any ? any.src : null;
 						} else {
 							const any = loadedFoodImages[Math.floor(Math.random() * loadedFoodImages.length)];
 							foodImage = any ? any.img : null;
@@ -646,9 +668,18 @@
 				eatenFoodCount++; // 먹은 아이템 개수 증가
 				// 점수: 일반모드 +5, 기본 +10, 출장맨모드에서 28.png +50
 				let addScore = 10; // 기본 점수
-				if (currentMode === GAME_MODES.NORMAL) addScore = 5;
+				if (isNormalMode()) addScore = 5;
 				if (isClarkMode()) addScore = 15; // 클라크모드 점수
 				if (isBusinessTripMode() && currentFoodSrc && (currentFoodSrc.endsWith('28.png'))) addScore = 50;
+				if (isRumoMode()) {
+					tickMs = tickMs + 0.5;
+					const foodNumber = parseInt(currentFoodSrc.split('/').pop().split('.')[0]);
+					if (foodNumber >= 1 && foodNumber <= 20) {
+						addScore = 15;
+					} else if (foodNumber >= 21 && foodNumber <= 36) {
+						addScore = 5;
+					}
+				}
                 // console.log('currentFoodSrc : ' + currentFoodSrc);
 				score += addScore;
 				scoreEl.textContent = String(score);
@@ -657,10 +688,12 @@
 					bestEl.textContent = String(best);
 					localStorage.setItem('snake_best', String(best));
 				}
+
 				// 가속(선택) - 클라크모드는 일반보다 1.5배 빠르게 가속 (사용자 수정 가능)
 				{
 					const normalStep = 2;
-					const step = isClarkMode() ? Math.max(1, Math.round(normalStep * 4)) : normalStep;
+					const step = (isClarkMode()) ? Math.max(1, Math.round(normalStep * 2)) : normalStep;
+
 					tickMs = Math.max(60, tickMs - step);
 				}
 				// 출장맨모드: 다음 먹이 이미지를 순서대로 사용하도록 인덱스 증가
@@ -759,6 +792,23 @@
 							// 오답: 게임 오버
 							gameOver();
 							return;
+						}
+					}
+				}
+				// 루모 모드 점수 및 속도 조정
+				if (isRumoMode()) {
+					const foodNumber = parseInt(currentFoodSrc.split('/').pop().split('.')[0]);
+					if (foodNumber >= 1 && foodNumber <= 20) {
+						// 1~20: 속도 2배, 점수 20
+						// tickMs = Math.max(60, tickMs - BASE_TICK_MS / 2); // 속도 2배 빠르게
+						if (Number.isInteger(tickMs)) {
+							tickMs = Math.max(60, tickMs - parseInt(tickMs/2, 10)) + 0.5;
+						}
+					} else if (foodNumber >= 21 && foodNumber <= 36) {
+						// 21~36: 속도 50% 감소, 점수 5
+						// tickMs = Math.min(BASE_TICK_MS * 2, tickMs + BASE_TICK_MS / 2); // 속도 50% 느리게
+						if (Number.isInteger(tickMs)) {
+							tickMs = Math.min(BASE_TICK_MS * 2, tickMs + tickMs) + 0.5;
 						}
 					}
 				}
@@ -996,6 +1046,8 @@
 		addPressListener('btn-char-4', () => changeMode(GAME_MODES.CLARK));
 		addPressListener('btn-char-5', () => changeMode(GAME_MODES.ISORB));
 		addPressListener('btn-char-6', () => changeMode(GAME_MODES.NOPD));
+		addPressListener('btn-char-7', () => changeMode(GAME_MODES.RUMO));
+
 		// document.getElementById('btn-capture').addEventListener('click', captureCanvas);
 
 		// --- 시작 로직 수정 ---
